@@ -5,6 +5,7 @@
 <title>WebMusic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -12,9 +13,10 @@
 
 <style>
 :root{
-  --bg:#121212;
-  --bg2:#181818;
-  --bg3:#282828;
+  --bg:#000;
+  --panel:#121212;
+  --panel2:#181818;
+  --panel3:#282828;
   --text:#fff;
   --muted:#b3b3b3;
   --green:#1db954;
@@ -22,130 +24,186 @@
 *{box-sizing:border-box}
 body{
   margin:0;
-  font-family:Arial,Helvetica,sans-serif;
   background:var(--bg);
   color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+  height:100vh;
+  display:grid;
+  grid-template-columns:240px 1fr;
+  grid-template-rows:1fr 90px;
 }
-header{
-  background:#000;
-  padding:14px 24px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-header b{font-size:20px}
-#userBtn{cursor:pointer;color:var(--muted)}
-.admin-badge{color:var(--green);font-weight:bold;margin-left:6px}
 
-.section{padding:24px}
-button{
-  background:var(--green);
-  border:none;
-  color:#000;
-  padding:8px 14px;
-  border-radius:20px;
+/* SIDEBAR */
+aside{
+  grid-row:1/2;
+  background:#000;
+  padding:24px;
+}
+aside h1{
+  font-size:20px;
+  margin-bottom:24px;
+}
+.nav{
+  color:var(--muted);
+  margin-bottom:14px;
   cursor:pointer;
   font-weight:bold;
 }
-button.secondary{
-  background:transparent;
-  color:var(--text);
-  border:1px solid var(--bg3);
-}
-button:hover{transform:scale(1.05)}
+.nav:hover{color:white}
 
+/* MAIN */
+main{
+  grid-column:2/3;
+  grid-row:1/2;
+  background:linear-gradient(#1e1e1e,#121212 40%);
+  padding:24px;
+  overflow:auto;
+}
+
+/* TOP BAR */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:24px;
+}
+#userBtn{cursor:pointer;color:var(--muted)}
+
+/* CARDS */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:20px;
+  gap:24px;
 }
-
 .card{
-  background:var(--bg2);
+  background:var(--panel2);
   padding:16px;
   border-radius:8px;
   cursor:pointer;
   transition:.2s;
+  position:relative;
 }
-.card:hover{background:var(--bg3)}
-.card h4{margin:10px 0 4px;font-size:15px}
+.card:hover{background:var(--panel3)}
+.card h4{margin:12px 0 4px}
 .card small{color:var(--muted)}
-
-.warning{
-  background:#2a1d1d;
-  border-left:4px solid #ff5555;
-  padding:14px;
-  margin-bottom:20px;
+.play{
+  position:absolute;
+  right:16px;
+  bottom:16px;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:var(--green);
+  color:black;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  opacity:0;
+  transform:translateY(8px);
+  transition:.2s;
+}
+.card:hover .play{
+  opacity:1;
+  transform:none;
 }
 
-.hidden{display:none}
+/* PLAYER */
+footer{
+  grid-column:1/3;
+  background:#181818;
+  border-top:1px solid #282828;
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+}
+audio{width:100%}
 
+/* MODALS */
 .modal{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.8);
+  background:rgba(0,0,0,.85);
   display:flex;
   align-items:center;
   justify-content:center;
   z-index:999;
 }
+.hidden{display:none}
 .modal-box{
-  background:var(--bg2);
-  padding:20px;
+  background:var(--panel2);
   width:320px;
+  padding:20px;
   border-radius:8px;
 }
 input{
   width:100%;
-  padding:8px;
+  padding:10px;
   margin-bottom:10px;
   background:#000;
-  border:1px solid var(--bg3);
+  border:1px solid var(--panel3);
   color:white;
 }
-
-audio{
-  position:fixed;
-  bottom:0;
+button{
   width:100%;
-  background:#000;
+  padding:10px;
+  border:none;
+  border-radius:20px;
+  background:var(--green);
+  font-weight:bold;
+  cursor:pointer;
+}
+button.secondary{
+  background:transparent;
+  color:white;
+  border:1px solid var(--panel3);
+}
+.warning{
+  background:#2a1d1d;
+  padding:14px;
+  border-left:4px solid #ff5555;
+  margin-bottom:20px;
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <b>🟢 WebMusic</b>
-  <div id="userBtn">Log in</div>
-</header>
+<aside>
+  <h1>🟢 WebMusic</h1>
+  <div class="nav">Home</div>
+  <div class="nav" id="uploadBtn">Upload</div>
+  <div class="nav" id="unapprovedBtn">Unapproved ⚠️</div>
+</aside>
 
-<div class="section">
-  <button id="uploadBtn">Upload MP3</button>
-  <button class="secondary" id="unapprovedBtn">Unapproved Audio ⚠️</button>
-</div>
-
-<div class="section">
-  <h2>Approved Music</h2>
-  <div id="approvedList" class="grid"></div>
-</div>
-
-<div class="section hidden" id="unapprovedSection">
-  <div class="warning">
-    ⚠️ Unmoderated uploads. May contain explicit or copyrighted content.
+<main>
+  <div class="topbar">
+    <h2>Music</h2>
+    <div id="userBtn">Log in</div>
   </div>
-  <h2>Unapproved Audio</h2>
-  <div id="unapprovedList" class="grid"></div>
-</div>
 
-<audio id="player" controls></audio>
+  <h3>Approved</h3>
+  <div id="approvedList" class="grid"></div>
+
+  <div id="unapprovedSection" class="hidden">
+    <div class="warning">
+      ⚠️ Unmoderated uploads. Content may be explicit or copyrighted.
+    </div>
+    <h3>Unapproved</h3>
+    <div id="unapprovedList" class="grid"></div>
+  </div>
+</main>
+
+<footer>
+  <audio id="player" controls></audio>
+</footer>
 
 <!-- AUTH MODAL -->
 <div id="authModal" class="modal hidden">
   <div class="modal-box">
     <h3>Log in</h3>
     <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
+    <input id="password" type="password">
     <button onclick="emailLogin()">Email Login</button><br><br>
     <button onclick="googleLogin()">Google Login</button><br><br>
     <button class="secondary" onclick="closeAuth()">Cancel</button>
@@ -178,48 +236,40 @@ let currentUser=null,isAdmin=false;
 
 auth.onAuthStateChanged(async u=>{
   currentUser=u;
-  isAdmin=false;
   if(u){
-    userBtn.innerHTML=u.email;
+    userBtn.textContent=u.email;
     const r=await db.collection("roles").doc(u.uid).get();
-    if(r.exists&&r.data().admin){
-      isAdmin=true;
-      userBtn.innerHTML+=`<span class="admin-badge">(admin)</span>`;
-    }
+    isAdmin=r.exists&&r.data().admin;
   }else userBtn.textContent="Log in";
 });
 
 userBtn.onclick=()=>currentUser?auth.signOut():authModal.classList.remove("hidden");
 function closeAuth(){authModal.classList.add("hidden")}
-function emailLogin(){auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message))}
-function googleLogin(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>alert(e.message))}
+function emailLogin(){auth.signInWithEmailAndPassword(email.value,password.value)}
+function googleLogin(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}
 
 uploadBtn.onclick=()=>currentUser?uploadModal.classList.remove("hidden"):authModal.classList.remove("hidden");
 function closeUpload(){uploadModal.classList.add("hidden")}
 
 async function uploadSong(){
   const f=fileInput.files[0];
-  if(!f||f.type!=="audio/mpeg")return alert("MP3 only");
+  if(!f)return;
   const ref=storage.ref("songs/"+Date.now()+f.name);
   await ref.put(f);
   const url=await ref.getDownloadURL();
-  await db.collection("songs").add({
-    title:songTitle.value,
-    url,approved:false,
-    created:firebase.firestore.FieldValue.serverTimestamp()
-  });
+  await db.collection("songs").add({title:songTitle.value,url,approved:false});
   closeUpload();loadSongs();
 }
 
 async function loadSongs(){
   approvedList.innerHTML="";
   unapprovedList.innerHTML="";
-  const s=await db.collection("songs").orderBy("created","desc").get();
+  const s=await db.collection("songs").get();
   s.forEach(d=>{
     const m=d.data();
     const c=document.createElement("div");
     c.className="card";
-    c.innerHTML=`<h4>${m.title}</h4><small>${m.approved?"Approved":"Pending"}</small>`;
+    c.innerHTML=`<h4>${m.title}</h4><small>${m.approved?"Approved":"Pending"}</small><div class="play">▶</div>`;
     c.onclick=()=>player.src=m.url;
     if(m.approved) approvedList.appendChild(c);
     else{
