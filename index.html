@@ -5,55 +5,140 @@
 <title>WebMusic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#121212;color:white}
-header{padding:12px 20px;background:#000;display:flex;justify-content:space-between;align-items:center}
-button{cursor:pointer}
-.section{padding:20px}
-.song{padding:10px;border-bottom:1px solid #333;cursor:pointer}
-.song:hover{background:#1e1e1e}
+:root{
+  --bg:#121212;
+  --bg2:#181818;
+  --bg3:#282828;
+  --text:#fff;
+  --muted:#b3b3b3;
+  --green:#1db954;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+header{
+  background:#000;
+  padding:14px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+header b{font-size:20px}
+#userBtn{cursor:pointer;color:var(--muted)}
+.admin-badge{color:var(--green);font-weight:bold;margin-left:6px}
+
+.section{padding:24px}
+button{
+  background:var(--green);
+  border:none;
+  color:#000;
+  padding:8px 14px;
+  border-radius:20px;
+  cursor:pointer;
+  font-weight:bold;
+}
+button.secondary{
+  background:transparent;
+  color:var(--text);
+  border:1px solid var(--bg3);
+}
+button:hover{transform:scale(1.05)}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:20px;
+}
+
+.card{
+  background:var(--bg2);
+  padding:16px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:.2s;
+}
+.card:hover{background:var(--bg3)}
+.card h4{margin:10px 0 4px;font-size:15px}
+.card small{color:var(--muted)}
+
+.warning{
+  background:#2a1d1d;
+  border-left:4px solid #ff5555;
+  padding:14px;
+  margin-bottom:20px;
+}
+
 .hidden{display:none}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:999}
-.modal-box{background:#181818;padding:20px;width:300px;text-align:center}
-input{width:100%;margin-bottom:10px;padding:8px}
-.warning{background:#331;padding:15px;margin-bottom:15px}
-.admin{color:#1db954;font-weight:bold}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.8);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+.modal-box{
+  background:var(--bg2);
+  padding:20px;
+  width:320px;
+  border-radius:8px;
+}
+input{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+  background:#000;
+  border:1px solid var(--bg3);
+  color:white;
+}
+
+audio{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#000;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div><b>WebMusic</b></div>
+  <b>🟢 WebMusic</b>
   <div id="userBtn">Log in</div>
 </header>
 
 <div class="section">
   <button id="uploadBtn">Upload MP3</button>
-  <button id="unapprovedBtn">Unapproved Audio ⚠️</button>
+  <button class="secondary" id="unapprovedBtn">Unapproved Audio ⚠️</button>
 </div>
 
 <div class="section">
   <h2>Approved Music</h2>
-  <div id="approvedList"></div>
+  <div id="approvedList" class="grid"></div>
 </div>
 
 <div class="section hidden" id="unapprovedSection">
   <div class="warning">
-    ⚠️ This section contains unmoderated user uploads.  
-    Content may be explicit or copyrighted.
+    ⚠️ Unmoderated uploads. May contain explicit or copyrighted content.
   </div>
   <h2>Unapproved Audio</h2>
-  <div id="unapprovedList"></div>
+  <div id="unapprovedList" class="grid"></div>
 </div>
 
-<audio id="player" controls style="width:100%;position:fixed;bottom:0;"></audio>
+<audio id="player" controls></audio>
 
 <!-- AUTH MODAL -->
 <div id="authModal" class="modal hidden">
@@ -63,7 +148,7 @@ input{width:100%;margin-bottom:10px;padding:8px}
     <input id="password" type="password" placeholder="Password">
     <button onclick="emailLogin()">Email Login</button><br><br>
     <button onclick="googleLogin()">Google Login</button><br><br>
-    <button onclick="closeAuth()">Cancel</button>
+    <button class="secondary" onclick="closeAuth()">Cancel</button>
   </div>
 </div>
 
@@ -74,112 +159,84 @@ input{width:100%;margin-bottom:10px;padding:8px}
     <input id="songTitle" placeholder="Song title">
     <input type="file" id="fileInput" accept="audio/mpeg">
     <button onclick="uploadSong()">Upload</button><br><br>
-    <button onclick="closeUpload()">Cancel</button>
+    <button class="secondary" onclick="closeUpload()">Cancel</button>
   </div>
 </div>
 
 <script>
-/* 🔴 FIREBASE CONFIG — REPLACE WITH YOUR OWN */
 firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
+  apiKey:"YOUR_API_KEY",
+  authDomain:"YOUR_PROJECT.firebaseapp.com",
+  projectId:"YOUR_PROJECT",
+  storageBucket:"YOUR_PROJECT.appspot.com"
 });
 
-/* Firebase refs */
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
+const auth=firebase.auth();
+const db=firebase.firestore();
+const storage=firebase.storage();
+let currentUser=null,isAdmin=false;
 
-let currentUser = null;
-let isAdmin = false;
-
-/* AUTH */
-auth.onAuthStateChanged(async user => {
-  currentUser = user;
-  isAdmin = false;
-
-  if (user) {
-    userBtn.textContent = user.email;
-    const role = await db.collection("roles").doc(user.uid).get();
-    if (role.exists && role.data().admin) {
-      isAdmin = true;
-      userBtn.innerHTML += ' <span class="admin">(admin)</span>';
+auth.onAuthStateChanged(async u=>{
+  currentUser=u;
+  isAdmin=false;
+  if(u){
+    userBtn.innerHTML=u.email;
+    const r=await db.collection("roles").doc(u.uid).get();
+    if(r.exists&&r.data().admin){
+      isAdmin=true;
+      userBtn.innerHTML+=`<span class="admin-badge">(admin)</span>`;
     }
-  } else {
-    userBtn.textContent = "Log in";
-  }
+  }else userBtn.textContent="Log in";
 });
 
-/* AUTH UI */
-userBtn.onclick = () => currentUser ? auth.signOut() : authModal.classList.remove("hidden");
-function closeAuth(){authModal.classList.add("hidden");}
-function emailLogin(){
-  auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message));
-}
-function googleLogin(){
-  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>alert(e.message));
-}
+userBtn.onclick=()=>currentUser?auth.signOut():authModal.classList.remove("hidden");
+function closeAuth(){authModal.classList.add("hidden")}
+function emailLogin(){auth.signInWithEmailAndPassword(email.value,password.value).catch(e=>alert(e.message))}
+function googleLogin(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>alert(e.message))}
 
-/* UPLOAD */
-uploadBtn.onclick = () => {
-  if (!currentUser) return authModal.classList.remove("hidden");
-  uploadModal.classList.remove("hidden");
-};
-function closeUpload(){uploadModal.classList.add("hidden");}
+uploadBtn.onclick=()=>currentUser?uploadModal.classList.remove("hidden"):authModal.classList.remove("hidden");
+function closeUpload(){uploadModal.classList.add("hidden")}
 
 async function uploadSong(){
-  const file = fileInput.files[0];
-  if (!file || file.type !== "audio/mpeg") return alert("MP3 only");
-
-  const ref = storage.ref("songs/" + Date.now() + "_" + file.name);
-  await ref.put(file);
-  const url = await ref.getDownloadURL();
-
+  const f=fileInput.files[0];
+  if(!f||f.type!=="audio/mpeg")return alert("MP3 only");
+  const ref=storage.ref("songs/"+Date.now()+f.name);
+  await ref.put(f);
+  const url=await ref.getDownloadURL();
   await db.collection("songs").add({
-    title: songTitle.value,
-    url,
-    approved: false,
-    uploader: currentUser.uid,
-    created: firebase.firestore.FieldValue.serverTimestamp()
+    title:songTitle.value,
+    url,approved:false,
+    created:firebase.firestore.FieldValue.serverTimestamp()
   });
-
-  closeUpload();
-  loadSongs();
+  closeUpload();loadSongs();
 }
 
-/* LOAD SONGS */
 async function loadSongs(){
-  approvedList.innerHTML = "";
-  unapprovedList.innerHTML = "";
-
-  const snap = await db.collection("songs").orderBy("created","desc").get();
-  snap.forEach(doc=>{
-    const s = doc.data();
-    const div = document.createElement("div");
-    div.className = "song";
-    div.textContent = s.title;
-    div.onclick = ()=>player.src=s.url;
-
-    if (s.approved) {
-      approvedList.appendChild(div);
-    } else {
-      if (isAdmin) {
-        const approve = document.createElement("button");
-        approve.textContent = "Approve";
-        approve.onclick = ()=>doc.ref.update({approved:true});
-        div.appendChild(approve);
+  approvedList.innerHTML="";
+  unapprovedList.innerHTML="";
+  const s=await db.collection("songs").orderBy("created","desc").get();
+  s.forEach(d=>{
+    const m=d.data();
+    const c=document.createElement("div");
+    c.className="card";
+    c.innerHTML=`<h4>${m.title}</h4><small>${m.approved?"Approved":"Pending"}</small>`;
+    c.onclick=()=>player.src=m.url;
+    if(m.approved) approvedList.appendChild(c);
+    else{
+      if(isAdmin){
+        const b=document.createElement("button");
+        b.textContent="Approve";
+        b.onclick=e=>{e.stopPropagation();d.ref.update({approved:true}).then(loadSongs)};
+        c.appendChild(b);
       }
-      unapprovedList.appendChild(div);
+      unapprovedList.appendChild(c);
     }
   });
 }
 
-unapprovedBtn.onclick = ()=>{
-  if (confirm("This section contains unmoderated content. Continue?")) {
+unapprovedBtn.onclick=()=>{
+  if(confirm("This section is unmoderated. Continue?"))
     unapprovedSection.classList.toggle("hidden");
-  }
 };
 
 loadSongs();
