@@ -5,7 +5,7 @@
 <title>WebMusic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase CDN (compat) -->
+<!-- Firebase CDN -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -45,6 +45,10 @@ aside h1{font-size:20px;margin-bottom:24px}
   cursor:pointer;
   font-weight:bold;
 }
+.nav.disabled{
+  opacity:.4;
+  pointer-events:none;
+}
 .nav:hover{color:white}
 
 /* MAIN */
@@ -59,7 +63,17 @@ main{
   align-items:center;
   margin-bottom:24px;
 }
-#userBtn{cursor:pointer;color:var(--muted)}
+#userBtn{
+  cursor:pointer;
+  padding:6px 12px;
+  border-radius:20px;
+  background:#000;
+  border:1px solid var(--panel3);
+}
+.logged-in{
+  border-color:var(--green);
+  color:var(--green);
+}
 
 /* CARDS */
 .grid{
@@ -160,8 +174,7 @@ button.secondary{
 
 <aside>
   <h1>🟢 WebMusic</h1>
-  <div class="nav">Home</div>
-  <div class="nav" id="uploadBtn">Upload</div>
+  <div class="nav disabled" id="uploadBtn">Upload (login required)</div>
   <div class="nav" id="unapprovedBtn">Unapproved ⚠️</div>
 </aside>
 
@@ -211,7 +224,6 @@ button.secondary{
 </div>
 
 <script>
-/* 🔑 FIREBASE CONFIG — YOUR PROJECT */
 firebase.initializeApp({
   apiKey: "AIzaSyDXmhJB-AJlK6z8OZBY-6gfFU6jOzbHc7s",
   authDomain: "webmusic-eb2fb.firebaseapp.com",
@@ -230,20 +242,28 @@ const provider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
 let isAdmin = false;
 
-/* HANDLE GOOGLE REDIRECT */
-auth.getRedirectResult().catch(err => alert(err.message));
+auth.getRedirectResult().catch(()=>{});
 
 auth.onAuthStateChanged(async user => {
+  console.log("AUTH STATE:", user); // 👈 debugging proof
+
   currentUser = user;
 
   if (user) {
     userBtn.textContent = user.email;
+    userBtn.classList.add("logged-in");
+    uploadBtn.classList.remove("disabled");
+    uploadBtn.textContent = "Upload";
     authModal.classList.add("hidden");
 
     const role = await db.collection("roles").doc(user.uid).get();
     isAdmin = role.exists && role.data().admin === true;
+
   } else {
     userBtn.textContent = "Log in";
+    userBtn.classList.remove("logged-in");
+    uploadBtn.classList.add("disabled");
+    uploadBtn.textContent = "Upload (login required)";
     isAdmin = false;
   }
 });
@@ -252,28 +272,21 @@ auth.onAuthStateChanged(async user => {
 userBtn.onclick = () =>
   currentUser ? auth.signOut() : authModal.classList.remove("hidden");
 
-function closeAuth(){
-  authModal.classList.add("hidden");
-}
-
+function closeAuth(){ authModal.classList.add("hidden"); }
 function emailLogin(){
   auth.signInWithEmailAndPassword(email.value, password.value)
     .catch(e => alert(e.message));
 }
-
 function googleLogin(){
   auth.signInWithRedirect(provider);
 }
 
 /* UPLOAD */
-uploadBtn.onclick = () =>
-  currentUser
-    ? uploadModal.classList.remove("hidden")
-    : authModal.classList.remove("hidden");
-
-function closeUpload(){
-  uploadModal.classList.add("hidden");
-}
+uploadBtn.onclick = () => {
+  if (!currentUser) return authModal.classList.remove("hidden");
+  uploadModal.classList.remove("hidden");
+};
+function closeUpload(){ uploadModal.classList.add("hidden"); }
 
 async function uploadSong(){
   const file = fileInput.files[0];
@@ -294,44 +307,27 @@ async function uploadSong(){
   loadSongs();
 }
 
-/* LOAD SONGS */
+/* SONGS */
 async function loadSongs(){
   approvedList.innerHTML = "";
   unapprovedList.innerHTML = "";
 
-  const snap = await db.collection("songs").orderBy("created", "desc").get();
-  snap.forEach(doc => {
-    const song = doc.data();
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <h4>${song.title}</h4>
-      <small>${song.approved ? "Approved" : "Pending"}</small>
-      <div class="play">▶</div>
-    `;
-    card.onclick = () => player.src = song.url;
+  const snap = await db.collection("songs").orderBy("created","desc").get();
+  snap.forEach(doc=>{
+    const s = doc.data();
+    const c = document.createElement("div");
+    c.className="card";
+    c.innerHTML=`<h4>${s.title}</h4><small>${s.approved?"Approved":"Pending"}</small><div class="play">▶</div>`;
+    c.onclick=()=>player.src=s.url;
 
-    if (song.approved) {
-      approvedList.appendChild(card);
-    } else {
-      if (isAdmin) {
-        const btn = document.createElement("button");
-        btn.textContent = "Approve";
-        btn.onclick = e => {
-          e.stopPropagation();
-          doc.ref.update({ approved: true }).then(loadSongs);
-        };
-        card.appendChild(btn);
-      }
-      unapprovedList.appendChild(card);
-    }
+    if(s.approved) approvedList.appendChild(c);
+    else unapprovedList.appendChild(c);
   });
 }
 
-unapprovedBtn.onclick = () => {
-  if (confirm("This section is unmoderated. Continue?")) {
+unapprovedBtn.onclick=()=>{
+  if(confirm("This section is unmoderated. Continue?"))
     unapprovedSection.classList.toggle("hidden");
-  }
 };
 
 loadSongs();
