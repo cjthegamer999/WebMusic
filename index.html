@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>WebMusic</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Firebase CDN -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -13,323 +12,186 @@
 
 <style>
 :root{
-  --bg:#000;
-  --panel:#121212;
-  --panel2:#181818;
-  --panel3:#282828;
-  --text:#fff;
-  --muted:#b3b3b3;
-  --green:#1db954;
+--bg:#000;--panel:#121212;--panel2:#181818;--panel3:#282828;
+--text:#fff;--muted:#b3b3b3;--green:#1db954
 }
 *{box-sizing:border-box}
 body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:Arial,Helvetica,sans-serif;
-  height:100vh;
-  display:grid;
-  grid-template-columns:240px 1fr;
-  grid-template-rows:1fr 90px;
+margin:0;height:100vh;
+display:grid;
+grid-template-columns:240px 1fr;
+grid-template-rows:1fr 90px;
+background:var(--bg);color:var(--text);
+font-family:Arial,Helvetica,sans-serif
 }
-
-/* SIDEBAR */
-aside{
-  background:#000;
-  padding:24px;
-}
-aside h1{font-size:20px;margin-bottom:24px}
-.nav{
-  color:var(--muted);
-  margin-bottom:14px;
-  cursor:pointer;
-  font-weight:bold;
-}
-.nav.disabled{
-  opacity:.4;
-  pointer-events:none;
-}
+aside{padding:24px;background:#000}
+.nav{color:var(--muted);font-weight:bold;margin:12px 0;cursor:pointer}
+.nav.disabled{opacity:.4;pointer-events:none}
 .nav:hover{color:white}
-
-/* MAIN */
-main{
-  background:linear-gradient(#1e1e1e,#121212 40%);
-  padding:24px;
-  overflow:auto;
-}
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:24px;
-}
-#userBtn{
-  cursor:pointer;
-  padding:6px 12px;
-  border-radius:20px;
-  background:#000;
-  border:1px solid var(--panel3);
-}
-.logged-in{
-  border-color:var(--green);
-  color:var(--green);
-}
-
-/* CARDS */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:24px;
-}
-.card{
-  background:var(--panel2);
-  padding:16px;
-  border-radius:8px;
-  cursor:pointer;
-  transition:.2s;
-  position:relative;
-}
+main{padding:24px;overflow:auto;background:linear-gradient(#1f1f1f,#121212)}
+.topbar{display:flex;justify-content:space-between;align-items:center}
+#userBtn{cursor:pointer;padding:6px 12px;border-radius:20px;border:1px solid var(--panel3)}
+.logged{border-color:var(--green);color:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:24px;margin-top:20px}
+.card{background:var(--panel2);padding:16px;border-radius:8px;cursor:pointer;position:relative}
 .card:hover{background:var(--panel3)}
-.card h4{margin:12px 0 4px}
-.card small{color:var(--muted)}
-.play{
-  position:absolute;
-  right:16px;
-  bottom:16px;
-  width:40px;
-  height:40px;
-  border-radius:50%;
-  background:var(--green);
-  color:black;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-  opacity:0;
-  transform:translateY(8px);
-  transition:.2s;
-}
-.card:hover .play{opacity:1;transform:none}
-
-/* PLAYER */
-footer{
-  grid-column:1/3;
-  background:#181818;
-  border-top:1px solid #282828;
-  display:flex;
-  align-items:center;
-  padding:0 20px;
-}
+.play{position:absolute;right:16px;bottom:16px;width:40px;height:40px;border-radius:50%;
+background:var(--green);color:black;display:flex;align-items:center;justify-content:center;opacity:0}
+.card:hover .play{opacity:1}
+footer{grid-column:1/3;background:#181818;border-top:1px solid #282828;padding:10px}
 audio{width:100%}
-
-/* MODALS */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.85);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:999;
-}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:999}
 .hidden{display:none}
-.modal-box{
-  background:var(--panel2);
-  width:320px;
-  padding:20px;
-  border-radius:8px;
-}
-input{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  background:#000;
-  border:1px solid var(--panel3);
-  color:white;
-}
-button{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:20px;
-  background:var(--green);
-  font-weight:bold;
-  cursor:pointer;
-}
-button.secondary{
-  background:transparent;
-  color:white;
-  border:1px solid var(--panel3);
-}
-.warning{
-  background:#2a1d1d;
-  padding:14px;
-  border-left:4px solid #ff5555;
-  margin-bottom:20px;
-}
+.box{background:var(--panel2);padding:20px;width:320px;border-radius:8px}
+button{width:100%;padding:10px;border:none;border-radius:20px;background:var(--green);font-weight:bold;cursor:pointer}
+.secondary{background:transparent;border:1px solid var(--panel3);color:white}
+.profile{display:flex;align-items:center;gap:10px}
+.profile img{width:40px;height:40px;border-radius:50%}
 </style>
 </head>
 
 <body>
 
 <aside>
-  <h1>🟢 WebMusic</h1>
-  <div class="nav disabled" id="uploadBtn">Upload (login required)</div>
-  <div class="nav" id="unapprovedBtn">Unapproved ⚠️</div>
+<h2>🟢 WebMusic</h2>
+<div class="nav" id="homeBtn">Home</div>
+<div class="nav" id="accountBtn">Account</div>
+<div class="nav disabled" id="uploadBtn">Upload (login)</div>
 </aside>
 
 <main>
-  <div class="topbar">
-    <h2>Music</h2>
-    <div id="userBtn">Log in</div>
-  </div>
+<div class="topbar">
+<h2 id="pageTitle">Home</h2>
+<div id="userBtn">Log in</div>
+</div>
 
-  <h3>Approved</h3>
-  <div id="approvedList" class="grid"></div>
+<div id="homePage">
+<div class="grid" id="songList"></div>
+</div>
 
-  <div id="unapprovedSection" class="hidden">
-    <div class="warning">
-      ⚠️ Unmoderated uploads. Content may be explicit or copyrighted.
-    </div>
-    <h3>Unapproved</h3>
-    <div id="unapprovedList" class="grid"></div>
-  </div>
+<div id="accountPage" class="hidden">
+<h3>Account</h3>
+<div class="profile">
+<img id="profilePic">
+<div>
+<div id="profileName"></div>
+<div id="profileEmail" style="color:var(--muted)"></div>
+</div>
+</div>
+</div>
 </main>
 
 <footer>
-  <audio id="player" controls></audio>
+<audio id="player" controls></audio>
 </footer>
 
-<!-- AUTH MODAL -->
-<div id="authModal" class="modal hidden">
-  <div class="modal-box">
-    <h3>Log in</h3>
-    <input id="email" placeholder="Email">
-    <input id="password" type="password">
-    <button onclick="emailLogin()">Email Login</button><br><br>
-    <button onclick="googleLogin()">Continue with Google</button><br><br>
-    <button class="secondary" onclick="closeAuth()">Cancel</button>
-  </div>
+<div id="loginModal" class="modal hidden">
+<div class="box">
+<h3>Log in</h3>
+<button onclick="googleLogin()">Continue with Google</button><br><br>
+<button class="secondary" onclick="closeLogin()">Cancel</button>
+</div>
 </div>
 
-<!-- UPLOAD MODAL -->
 <div id="uploadModal" class="modal hidden">
-  <div class="modal-box">
-    <h3>Upload MP3</h3>
-    <input id="songTitle" placeholder="Song title">
-    <input type="file" id="fileInput" accept="audio/mpeg">
-    <button onclick="uploadSong()">Upload</button><br><br>
-    <button class="secondary" onclick="closeUpload()">Cancel</button>
-  </div>
+<div class="box">
+<h3>Upload MP3</h3>
+<input type="file" id="fileInput" accept="audio/mpeg"><br><br>
+<button onclick="uploadSong()">Upload</button><br><br>
+<button class="secondary" onclick="closeUpload()">Cancel</button>
+</div>
 </div>
 
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSyDXmhJB-AJlK6z8OZBY-6gfFU6jOzbHc7s",
-  authDomain: "webmusic-eb2fb.firebaseapp.com",
-  projectId: "webmusic-eb2fb",
-  storageBucket: "webmusic-eb2fb.firebasestorage.app",
-  messagingSenderId: "982822581676",
-  appId: "1:982822581676:web:20b402e0ea4571f510f609",
-  measurementId: "G-8PYLNDTNN7"
+apiKey:"AIzaSyDXmhJB-AJlK6z8OZBY-6gfFU6jOzbHc7s",
+authDomain:"webmusic-eb2fb.firebaseapp.com",
+projectId:"webmusic-eb2fb",
+storageBucket:"webmusic-eb2fb.firebasestorage.app",
+messagingSenderId:"982822581676",
+appId:"1:982822581676:web:20b402e0ea4571f510f609"
 });
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
-const provider = new firebase.auth.GoogleAuthProvider();
+const auth=firebase.auth();
+const db=firebase.firestore();
+const storage=firebase.storage();
+const provider=new firebase.auth.GoogleAuthProvider();
 
-let currentUser = null;
-let isAdmin = false;
+let user=null;
 
-auth.getRedirectResult().catch(()=>{});
+/* AUTH */
+auth.onAuthStateChanged(u=>{
+user=u;
+console.log("AUTH:",u);
 
-auth.onAuthStateChanged(async user => {
-  console.log("AUTH STATE:", user); // 👈 debugging proof
-
-  currentUser = user;
-
-  if (user) {
-    userBtn.textContent = user.email;
-    userBtn.classList.add("logged-in");
-    uploadBtn.classList.remove("disabled");
-    uploadBtn.textContent = "Upload";
-    authModal.classList.add("hidden");
-
-    const role = await db.collection("roles").doc(user.uid).get();
-    isAdmin = role.exists && role.data().admin === true;
-
-  } else {
-    userBtn.textContent = "Log in";
-    userBtn.classList.remove("logged-in");
-    uploadBtn.classList.add("disabled");
-    uploadBtn.textContent = "Upload (login required)";
-    isAdmin = false;
-  }
-});
-
-/* AUTH UI */
-userBtn.onclick = () =>
-  currentUser ? auth.signOut() : authModal.classList.remove("hidden");
-
-function closeAuth(){ authModal.classList.add("hidden"); }
-function emailLogin(){
-  auth.signInWithEmailAndPassword(email.value, password.value)
-    .catch(e => alert(e.message));
+if(u){
+userBtn.innerHTML=`<div class="profile">
+<img src="${u.photoURL}">
+<span>${u.displayName}</span>
+</div>`;
+userBtn.classList.add("logged");
+uploadBtn.classList.remove("disabled");
+}else{
+userBtn.textContent="Log in";
+userBtn.classList.remove("logged");
+uploadBtn.classList.add("disabled");
 }
+});
+
+/* LOGIN */
 function googleLogin(){
-  auth.signInWithRedirect(provider);
+auth.signInWithPopup(provider)
+.catch(e=>alert(e.message));
+}
+userBtn.onclick=()=>user?auth.signOut():loginModal.classList.remove("hidden");
+function closeLogin(){loginModal.classList.add("hidden")}
+
+/* NAV */
+homeBtn.onclick=()=>{
+homePage.classList.remove("hidden");
+accountPage.classList.add("hidden");
+pageTitle.textContent="Home";
+}
+accountBtn.onclick=()=>{
+if(!user)return loginModal.classList.remove("hidden");
+homePage.classList.add("hidden");
+accountPage.classList.remove("hidden");
+pageTitle.textContent="Account";
+profileName.textContent=user.displayName;
+profileEmail.textContent=user.email;
+profilePic.src=user.photoURL;
 }
 
 /* UPLOAD */
-uploadBtn.onclick = () => {
-  if (!currentUser) return authModal.classList.remove("hidden");
-  uploadModal.classList.remove("hidden");
-};
-function closeUpload(){ uploadModal.classList.add("hidden"); }
+uploadBtn.onclick=()=>{
+if(!user)return loginModal.classList.remove("hidden");
+uploadModal.classList.remove("hidden");
+}
+function closeUpload(){uploadModal.classList.add("hidden")}
 
 async function uploadSong(){
-  const file = fileInput.files[0];
-  if (!file) return alert("Select an MP3");
-
-  const ref = storage.ref("songs/" + Date.now() + "_" + file.name);
-  await ref.put(file);
-  const url = await ref.getDownloadURL();
-
-  await db.collection("songs").add({
-    title: songTitle.value || "Untitled",
-    url,
-    approved: false,
-    created: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  closeUpload();
-  loadSongs();
+const f=fileInput.files[0];
+if(!f)return alert("Select MP3");
+const ref=storage.ref("songs/"+Date.now()+"_"+f.name);
+await ref.put(f);
+const url=await ref.getDownloadURL();
+await db.collection("songs").add({url,created:Date.now()});
+uploadModal.classList.add("hidden");
+loadSongs();
 }
 
 /* SONGS */
 async function loadSongs(){
-  approvedList.innerHTML = "";
-  unapprovedList.innerHTML = "";
-
-  const snap = await db.collection("songs").orderBy("created","desc").get();
-  snap.forEach(doc=>{
-    const s = doc.data();
-    const c = document.createElement("div");
-    c.className="card";
-    c.innerHTML=`<h4>${s.title}</h4><small>${s.approved?"Approved":"Pending"}</small><div class="play">▶</div>`;
-    c.onclick=()=>player.src=s.url;
-
-    if(s.approved) approvedList.appendChild(c);
-    else unapprovedList.appendChild(c);
-  });
+songList.innerHTML="";
+const snap=await db.collection("songs").orderBy("created","desc").get();
+snap.forEach(d=>{
+const c=document.createElement("div");
+c.className="card";
+c.innerHTML=`<h4>Song</h4><div class="play">▶</div>`;
+c.onclick=()=>player.src=d.data().url;
+songList.appendChild(c);
+});
 }
-
-unapprovedBtn.onclick=()=>{
-  if(confirm("This section is unmoderated. Continue?"))
-    unapprovedSection.classList.toggle("hidden");
-};
-
 loadSongs();
 </script>
 
