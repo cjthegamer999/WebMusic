@@ -5,7 +5,7 @@
 <title>WebMusic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase -->
+<!-- Firebase CDN (compat) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -35,14 +35,10 @@ body{
 
 /* SIDEBAR */
 aside{
-  grid-row:1/2;
   background:#000;
   padding:24px;
 }
-aside h1{
-  font-size:20px;
-  margin-bottom:24px;
-}
+aside h1{font-size:20px;margin-bottom:24px}
 .nav{
   color:var(--muted);
   margin-bottom:14px;
@@ -53,14 +49,10 @@ aside h1{
 
 /* MAIN */
 main{
-  grid-column:2/3;
-  grid-row:1/2;
   background:linear-gradient(#1e1e1e,#121212 40%);
   padding:24px;
   overflow:auto;
 }
-
-/* TOP BAR */
 .topbar{
   display:flex;
   justify-content:space-between;
@@ -103,10 +95,7 @@ main{
   transform:translateY(8px);
   transition:.2s;
 }
-.card:hover .play{
-  opacity:1;
-  transform:none;
-}
+.card:hover .play{opacity:1;transform:none}
 
 /* PLAYER */
 footer{
@@ -205,7 +194,7 @@ button.secondary{
     <input id="email" placeholder="Email">
     <input id="password" type="password">
     <button onclick="emailLogin()">Email Login</button><br><br>
-    <button onclick="googleLogin()">Google Login</button><br><br>
+    <button onclick="googleLogin()">Continue with Google</button><br><br>
     <button class="secondary" onclick="closeAuth()">Cancel</button>
   </div>
 </div>
@@ -222,71 +211,127 @@ button.secondary{
 </div>
 
 <script>
+/* 🔑 FIREBASE CONFIG — YOUR PROJECT */
 firebase.initializeApp({
-  apiKey:"YOUR_API_KEY",
-  authDomain:"YOUR_PROJECT.firebaseapp.com",
-  projectId:"YOUR_PROJECT",
-  storageBucket:"YOUR_PROJECT.appspot.com"
+  apiKey: "AIzaSyDXmhJB-AJlK6z8OZBY-6gfFU6jOzbHc7s",
+  authDomain: "webmusic-eb2fb.firebaseapp.com",
+  projectId: "webmusic-eb2fb",
+  storageBucket: "webmusic-eb2fb.firebasestorage.app",
+  messagingSenderId: "982822581676",
+  appId: "1:982822581676:web:20b402e0ea4571f510f609",
+  measurementId: "G-8PYLNDTNN7"
 });
 
-const auth=firebase.auth();
-const db=firebase.firestore();
-const storage=firebase.storage();
-let currentUser=null,isAdmin=false;
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+const provider = new firebase.auth.GoogleAuthProvider();
 
-auth.onAuthStateChanged(async u=>{
-  currentUser=u;
-  if(u){
-    userBtn.textContent=u.email;
-    const r=await db.collection("roles").doc(u.uid).get();
-    isAdmin=r.exists&&r.data().admin;
-  }else userBtn.textContent="Log in";
+let currentUser = null;
+let isAdmin = false;
+
+/* HANDLE GOOGLE REDIRECT */
+auth.getRedirectResult().catch(err => alert(err.message));
+
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+
+  if (user) {
+    userBtn.textContent = user.email;
+    authModal.classList.add("hidden");
+
+    const role = await db.collection("roles").doc(user.uid).get();
+    isAdmin = role.exists && role.data().admin === true;
+  } else {
+    userBtn.textContent = "Log in";
+    isAdmin = false;
+  }
 });
 
-userBtn.onclick=()=>currentUser?auth.signOut():authModal.classList.remove("hidden");
-function closeAuth(){authModal.classList.add("hidden")}
-function emailLogin(){auth.signInWithEmailAndPassword(email.value,password.value)}
-function googleLogin(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}
+/* AUTH UI */
+userBtn.onclick = () =>
+  currentUser ? auth.signOut() : authModal.classList.remove("hidden");
 
-uploadBtn.onclick=()=>currentUser?uploadModal.classList.remove("hidden"):authModal.classList.remove("hidden");
-function closeUpload(){uploadModal.classList.add("hidden")}
-
-async function uploadSong(){
-  const f=fileInput.files[0];
-  if(!f)return;
-  const ref=storage.ref("songs/"+Date.now()+f.name);
-  await ref.put(f);
-  const url=await ref.getDownloadURL();
-  await db.collection("songs").add({title:songTitle.value,url,approved:false});
-  closeUpload();loadSongs();
+function closeAuth(){
+  authModal.classList.add("hidden");
 }
 
+function emailLogin(){
+  auth.signInWithEmailAndPassword(email.value, password.value)
+    .catch(e => alert(e.message));
+}
+
+function googleLogin(){
+  auth.signInWithRedirect(provider);
+}
+
+/* UPLOAD */
+uploadBtn.onclick = () =>
+  currentUser
+    ? uploadModal.classList.remove("hidden")
+    : authModal.classList.remove("hidden");
+
+function closeUpload(){
+  uploadModal.classList.add("hidden");
+}
+
+async function uploadSong(){
+  const file = fileInput.files[0];
+  if (!file) return alert("Select an MP3");
+
+  const ref = storage.ref("songs/" + Date.now() + "_" + file.name);
+  await ref.put(file);
+  const url = await ref.getDownloadURL();
+
+  await db.collection("songs").add({
+    title: songTitle.value || "Untitled",
+    url,
+    approved: false,
+    created: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  closeUpload();
+  loadSongs();
+}
+
+/* LOAD SONGS */
 async function loadSongs(){
-  approvedList.innerHTML="";
-  unapprovedList.innerHTML="";
-  const s=await db.collection("songs").get();
-  s.forEach(d=>{
-    const m=d.data();
-    const c=document.createElement("div");
-    c.className="card";
-    c.innerHTML=`<h4>${m.title}</h4><small>${m.approved?"Approved":"Pending"}</small><div class="play">▶</div>`;
-    c.onclick=()=>player.src=m.url;
-    if(m.approved) approvedList.appendChild(c);
-    else{
-      if(isAdmin){
-        const b=document.createElement("button");
-        b.textContent="Approve";
-        b.onclick=e=>{e.stopPropagation();d.ref.update({approved:true}).then(loadSongs)};
-        c.appendChild(b);
+  approvedList.innerHTML = "";
+  unapprovedList.innerHTML = "";
+
+  const snap = await db.collection("songs").orderBy("created", "desc").get();
+  snap.forEach(doc => {
+    const song = doc.data();
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <h4>${song.title}</h4>
+      <small>${song.approved ? "Approved" : "Pending"}</small>
+      <div class="play">▶</div>
+    `;
+    card.onclick = () => player.src = song.url;
+
+    if (song.approved) {
+      approvedList.appendChild(card);
+    } else {
+      if (isAdmin) {
+        const btn = document.createElement("button");
+        btn.textContent = "Approve";
+        btn.onclick = e => {
+          e.stopPropagation();
+          doc.ref.update({ approved: true }).then(loadSongs);
+        };
+        card.appendChild(btn);
       }
-      unapprovedList.appendChild(c);
+      unapprovedList.appendChild(card);
     }
   });
 }
 
-unapprovedBtn.onclick=()=>{
-  if(confirm("This section is unmoderated. Continue?"))
+unapprovedBtn.onclick = () => {
+  if (confirm("This section is unmoderated. Continue?")) {
     unapprovedSection.classList.toggle("hidden");
+  }
 };
 
 loadSongs();
